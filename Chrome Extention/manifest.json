@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "HIT 校园网站自动登录 2.0",
+  "version": "1.2.2",
+  "author": "Ricardo Zheng",
+  "description": "在 HIT 站点自动填充/登录",
+  "permissions": ["storage", "contextMenus", "scripting", "activeTab", "tabs"],
+  "host_permissions": ["*://*/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "HIT 自动登录"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_idle",
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["help.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

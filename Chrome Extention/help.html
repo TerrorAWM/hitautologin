@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>HIT 自动登录 - 使用教程</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Microsoft YaHei,sans-serif; color:#111; margin: 32px auto; padding:0 16px; max-width: 860px; line-height:1.6; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin-top: 24px; }
+    code, pre { background:#f6f8fa; border:1px solid #eee; border-radius:8px; padding:2px 6px; }
+    pre { padding:12px; overflow:auto; }
+    .tip { background:#f0f9ff; border-left:4px solid #0ea5e9; padding:10px 12px; border-radius:6px; }
+    ol li { margin: 6px 0; }
+    .lang { position:fixed; top:12px; right:16px; display:flex; gap:8px; }
+    .lang button{ border:1px solid #e5e7eb; background:#fff; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    .lang button.active{ background:#eef2ff; }
+    .mut{ color:#666; }
+  </style>
+</head>
+<body>
+  <div class="lang">
+    <button id="btnZh">中文</button>
+    <button id="btnEn">English</button>
+  </div>
+
+  <h1 id="h1">HIT 自动登录 · 使用教程</h1>
+  <p class="tip" id="tip">本扩展会在 <b>*.hit.edu.cn</b> 与 <b>*.ivpn.hit.edu.cn</b> 页面自动寻找登录框并填充/点击登录。遇到验证码或错误提示，会自动关闭自动登录并给出提示。</p>
+
+  <h2 id="s1">一、安装与打开</h2>
+  <ol id="s1list">
+    <li>打开 <code>chrome://extensions/</code>，开启右上角 <b>开发者模式</b>。</li>
+    <li>点击「加载已解压的扩展程序」，选择扩展文件夹。</li>
+    <li>右上角固定图标（可选）。</li>
+  </ol>
+
+  <h2 id="s2">二、弹出页设置</h2>
+  <ol id="s2list">
+    <li>填写「用户名 / 密码」，停止输入 0.5 秒或失焦即自动保存。</li>
+    <li>切换「开启自动登录」开关（即点即生效）。</li>
+    <li>切换「显示悬浮按钮（全站）」开关：当前页会立刻尝试创建/移除悬浮按钮（若页面不允许注入，则刷新后生效）。</li>
+  </ol>
+
+  <h2 id="s3">三、悬浮按钮（FAB）</h2>
+  <ul id="s3list">
+    <li>右下角 <b>HIT</b> 圆形入口，可展开常用链接（内网/外网/WLAN）。</li>
+    <li>在 HIT 域名页面，面板内还可快速查看/设置：用户名、密码、自动登录开关，以及手动接管一次登录。</li>
+  </ul>
+
+  <h2 id="s4">四、右键菜单</h2>
+  <p id="s4p">在任意页面右键 → <b>HIT：手动接管登录</b>。如果当前页允许脚本注入，会强制尝试一次登录流程。</p>
+
+  <h2 id="s5">五、为什么有时需要刷新？</h2>
+  <ul id="s5list">
+    <li>当前标签页在安装扩展前已打开，尚未注入内容脚本。</li>
+    <li>页面是受限页面（如 <code>chrome://</code>、扩展商店、PDF 预览等），不允许注入。</li>
+    <li>已在弹出页实现「失败则注入再发」策略，通常当前页无需刷新；但已打开的其它标签不会被同时切换。</li>
+  </ul>
+
+  <h2 id="s6">六、常见问题</h2>
+  <ul id="s6list">
+    <li><b>没有出现悬浮按钮？</b> 确认弹出页已开启开关，并尝试在普通 http/https 页测试；受限页无法注入。</li>
+    <li><b>自动登录没触发？</b> 需在 <code>*.hit.edu.cn</code> 或 <code>*.ivpn.hit.edu.cn</code> 页面；异步渲染会自动重试 10s。</li>
+  </ul>
+
+  <p class="mut" id="ver" style="margin-top:24px;">版本 1.2.2 · MIT License</p>
+
+  <script>
+    // 读/写语言，与 popup 同步
+    const get = (k, d) => new Promise(r => chrome.storage?.local.get([k], o => r(o[k] !== undefined ? o[k] : d)));
+    const set = (k, v) => new Promise(r => chrome.storage?.local.set({[k]:v}, r));
+
+    const L = {
+      zh:{
+        h1:"HIT 自动登录 · 使用教程",
+        tip:"本扩展会在 <b>*.hit.edu.cn</b> 与 <b>*.ivpn.hit.edu.cn</b> 页面自动寻找登录框并填充/点击登录。遇到验证码或错误提示，会自动关闭自动登录并给出提示。",
+        s1:"一、安装与打开",
+        s1list:[
+          '打开 <code>chrome://extensions/</code>，开启右上角 <b>开发者模式</b>。',
+          '点击「加载已解压的扩展程序」，选择扩展文件夹。',
+          '右上角固定图标（可选）。'
+        ],
+        s2:"二、弹出页设置",
+        s2list:[
+          '填写「用户名 / 密码」，停止输入 0.5 秒或失焦即自动保存。',
+          '切换「开启自动登录」开关（即点即生效）。',
+          '切换「显示悬浮按钮（全站）」开关：当前页会立刻尝试创建/移除悬浮按钮（若页面不允许注入，则刷新后生效）。'
+        ],
+        s3:"三、悬浮按钮（FAB）",
+        s3list:[
+          '右下角 <b>HIT</b> 圆形入口，可展开常用链接（内网/外网/WLAN）。',
+          '在 HIT 域名页面，面板内还可快速查看/设置：用户名、密码、自动登录开关，以及手动接管一次登录。'
+        ],
+        s4:"四、右键菜单",
+        s4p:'在任意页面右键 → <b>HIT：手动接管登录</b>。如果当前页允许脚本注入，会强制尝试一次登录流程。',
+        s5:"五、为什么有时需要刷新？",
+        s5list:[
+          '当前标签页在安装扩展前已打开，尚未注入内容脚本。',
+          '页面是受限页面（如 <code>chrome://</code>、扩展商店、PDF 预览等），不允许注入。',
+          '已在弹出页实现「失败则注入再发」策略，通常当前页无需刷新；但已打开的其它标签不会被同时切换。'
+        ],
+        s6:"六、常见问题",
+        s6list:[
+          '<b>没有出现悬浮按钮？</b> 确认弹出页已开启开关，并尝试在普通 http/https 页测试；受限页无法注入。',
+          '<b>自动登录没触发？</b> 需在 <code>*.hit.edu.cn</code> 或 <code>*.ivpn.hit.edu.cn</code> 页面；异步渲染会自动重试 10s。'
+        ],
+        ver:"版本 1.2.2 · MIT License"
+      },
+      en:{
+        h1:"HIT Auto Login · Help",
+        tip:"This extension auto-fills & submits login forms on <b>*.hit.edu.cn</b> and <b>*.ivpn.hit.edu.cn</b>. On captcha or error, it disables auto-login and notifies you.",
+        s1:"1) Install & Open",
+        s1list:[
+          'Open <code>chrome://extensions/</code> and enable <b>Developer mode</b>.',
+          'Click “Load unpacked” and select the extension folder.',
+          'Optionally pin the icon (toolbar).'
+        ],
+        s2:"2) Popup Settings",
+        s2list:[
+          'Enter username/password; auto-saved after 0.5s idle or on blur.',
+          'Toggle “Enable Auto Login” (applies immediately).',
+          'Toggle “Show Floating Button” — applies to current page if injection is allowed; otherwise take effect after refresh.'
+        ],
+        s3:"3) Floating Button (FAB)",
+        s3list:[
+          'Bottom-right “HIT” circular entry with quick links (Intranet/Extranet/WLAN).',
+          'On HIT domains, view/set username/password/auto-login and trigger one-time takeover.'
+        ],
+        s4:"4) Context Menu",
+        s4p:'Right-click anywhere → <b>HIT: Trigger Login Manually</b>. If injection is allowed, it forces one login attempt.',
+        s5:"5) Why refresh sometimes?",
+        s5list:[
+          'The tab was opened before installing the extension (no content script injected yet).',
+          'Restricted pages (e.g., <code>chrome://</code>, Web Store, PDF viewer) disallow injection.',
+          'Popup tries “inject-then-send” fallback; existing other tabs are not toggled automatically.'
+        ],
+        s6:"6) FAQ",
+        s6list:[
+          '<b>No floating button?</b> Ensure the switch is on; test on regular http/https pages; restricted pages block injection.',
+          '<b>No auto-login?</b> Must be on <code>*.hit.edu.cn</code> or <code>*.ivpn.hit.edu.cn</code>. The script retries up to 10s on async-rendered pages.'
+        ],
+        ver:"v1.2.2 · MIT License"
+      }
+    };
+
+    function render(lang){
+      const M=L[lang]||L.zh;
+      document.getElementById('h1').innerHTML=M.h1;
+      document.getElementById('tip').innerHTML=M.tip;
+      document.getElementById('s1').textContent=M.s1;
+      document.getElementById('s1list').innerHTML=M.s1list.map(x=>`<li>${x}</li>`).join('');
+      document.getElementById('s2').textContent=M.s2;
+      document.getElementById('s2list').innerHTML=M.s2list.map(x=>`<li>${x}</li>`).join('');
+      document.getElementById('s3').textContent=M.s3;
+      document.getElementById('s3list').innerHTML=M.s3list.map(x=>`<li>${x}</li>`).join('');
+      document.getElementById('s4').textContent=M.s4;
+      document.getElementById('s4p').innerHTML=M.s4p;
+      document.getElementById('s5').textContent=M.s5;
+      document.getElementById('s5list').innerHTML=M.s5list.map(x=>`<li>${x}</li>`).join('');
+      document.getElementById('s6').textContent=M.s6;
+      document.getElementById('s6list').innerHTML=M.s6list.map(x=>`<li>${x}</li>`).join('');
+      document.getElementById('ver').textContent=M.ver;
+
+      document.getElementById('btnZh').classList.toggle('active', lang==='zh');
+      document.getElementById('btnEn').classList.toggle('active', lang==='en');
+    }
+
+    let curLang = 'zh';
+    get('lang','zh').then(v=>{ curLang=v; render(curLang); });
+
+    document.getElementById('btnZh').addEventListener('click', async ()=>{
+      curLang='zh'; await set('lang','zh'); render(curLang);
+    });
+    document.getElementById('btnEn').addEventListener('click', async ()=>{
+      curLang='en'; await set('lang','en'); render(curLang);
+    });
+  </script>
+</body>
+</html>
