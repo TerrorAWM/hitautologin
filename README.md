@@ -214,8 +214,8 @@ MIT License © 2025
 
 ---
 
+
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=TerrorAWM/hitautologin&type=Date)](https://star-history.com/#TerrorAWM/hitautologin&Date)
-
+[![Star History Chart](https://api.star-history.com/svg?repos=TerrorAWM/hitautologin&type=date&legend=bottom-right)](https://www.star-history.com/#TerrorAWM/hitautologin&type=date&legend=bottom-right)
 
