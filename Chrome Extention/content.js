@@ -78,7 +78,7 @@
   // ---- 目标链接 ----
   const URL_INTRANET = 'http://i.hit.edu.cn/';
   const URL_EXTRANET = 'http://ivpn.hit.edu.cn/';
-  const URL_WLAN     = 'https://webportal.hit.edu.cn/';
+  const URL_WLAN = 'https://webportal.hit.edu.cn/';
 
   // ---- HIT 站点判定 ----
   const isHitSite =
@@ -86,20 +86,20 @@
     /(^|\.)ivpn\.hit\.edu\.cn$/i.test(location.hostname);
 
   // ====== 可配置 ID 列表（兼容历史）======
-  let username_ids     = ["username", "user", "loginUser", "IDToken1"];
-  let password_ids     = ["password", "passwd", "loginPwd", "IDToken2"];
-  let rememberMe_ids   = ["rememberMe", "remember", "stayLogged"];
+  let username_ids = ["username", "user", "loginUser", "IDToken1"];
+  let password_ids = ["password", "passwd", "loginPwd", "IDToken2"];
+  let rememberMe_ids = ["rememberMe", "remember", "stayLogged"];
   let login_submit_ids = ["login_submit", "login", "submitButton", "btn-login", "submit"];
-  let errorTip_ids     = ["showErrorTip"];
-  let captcha_ids      = ["captcha-id", "layui-layer1", "captcha-box"];
+  let errorTip_ids = ["showErrorTip"];
+  let captcha_ids = ["captcha-id", "layui-layer1", "captcha-box"];
 
   function setCustomIds(options) {
-    if (options.username_ids)     username_ids = options.username_ids;
-    if (options.password_ids)     password_ids = options.password_ids;
-    if (options.rememberMe_ids)   rememberMe_ids = options.rememberMe_ids;
+    if (options.username_ids) username_ids = options.username_ids;
+    if (options.password_ids) password_ids = options.password_ids;
+    if (options.rememberMe_ids) rememberMe_ids = options.rememberMe_ids;
     if (options.login_submit_ids) login_submit_ids = options.login_submit_ids;
-    if (options.errorTip_ids)     errorTip_ids = options.errorTip_ids;
-    if (options.captcha_ids)      captcha_ids = options.captcha_ids;
+    if (options.errorTip_ids) errorTip_ids = options.errorTip_ids;
+    if (options.captcha_ids) captcha_ids = options.captcha_ids;
   }
 
   // ====== 工具 ======
@@ -229,11 +229,19 @@
       #hit-fab-panel.open{ display:block; }
       .hit-fab-title{ font-size:14px; font-weight:700; margin:2px 0 8px; }
       .hit-fab-row{ display:flex; gap:8px; flex-wrap:wrap; }
-      .hit-fab-btn{ border:none; border-radius:999px; padding:8px 12px; background:#eef2ff; cursor:pointer; font-size:13px; }
+      .hit-fab-btn{ border:none; border-radius:999px; padding:8px 12px; background:#eef2ff; cursor:pointer; font-size:13px; color: #111; }
       .hit-fab-btn:hover{ background:#e0e7ff; }
       .hit-fab-sec{ margin-top:10px; padding-top:8px; border-top:1px dashed #e5e7eb; }
       .hit-fab-meta{ font-size:12px; color:#6b7280; }
       .hit-fab-kv{ display:flex; justify-content:space-between; gap:8px; font-size:12px; padding:4px 0; }
+
+      @media (prefers-color-scheme: dark) {
+        #hit-fab-panel { background: #1f2937; color: #f3f4f6; box-shadow: 0 16px 40px rgba(0,0,0,.5); }
+        .hit-fab-btn { background: #374151; color: #e5e7eb; }
+        .hit-fab-btn:hover { background: #4b5563; }
+        .hit-fab-sec { border-top-color: #4b5563; }
+        .hit-fab-meta { color: #9ca3af; }
+      }
     `);
   }
 
@@ -257,11 +265,11 @@
 
     const btnSetU = document.getElementById('hit-fab-set-username');
     const btnSetP = document.getElementById('hit-fab-set-password');
-    const btnTgl  = document.getElementById('hit-fab-toggle-autologin');
+    const btnTgl = document.getElementById('hit-fab-toggle-autologin');
     const btnTrig = document.getElementById('hit-fab-trigger-login');
     if (btnSetU) btnSetU.textContent = t('fab_set_user');
     if (btnSetP) btnSetP.textContent = t('fab_set_pass');
-    if (btnTgl)  btnTgl.textContent  = t('fab_toggle_auto');
+    if (btnTgl) btnTgl.textContent = t('fab_toggle_auto');
     if (btnTrig) btnTrig.textContent = t('fab_trigger_once');
 
     const siteMeta = document.getElementById('hit-fab-site-meta');
@@ -275,7 +283,7 @@
     if (!kvBox) return;
     const savedUsername = await store.get("username", "");
     const savedPassword = await store.get("password", "");
-    const autoLogin     = !!(await store.get("autoLogin", false));
+    const autoLogin = !!(await store.get("autoLogin", false));
     kvBox.innerHTML = `
       <div class="hit-fab-kv"><span>${t('kv_username')}</span><span>${savedUsername || t('val_unset')}</span></div>
       <div class="hit-fab-kv"><span>${t('kv_password')}</span><span>${savedPassword ? mask(savedPassword) : t('val_unset')}</span></div>
@@ -316,7 +324,7 @@
     `;
     document.documentElement.appendChild(wrap);
 
-    const panel  = document.getElementById('hit-fab-panel');
+    const panel = document.getElementById('hit-fab-panel');
     const toggle = document.getElementById('hit-fab-toggle');
 
     toggle.addEventListener('click', (e) => {
@@ -334,9 +342,9 @@
     panel.querySelectorAll('[data-goto]').forEach(btn => {
       btn.addEventListener('click', () => {
         const tgo = btn.getAttribute('data-goto');
-        if (tgo === 'intranet')      window.open(URL_INTRANET, '_self');
+        if (tgo === 'intranet') window.open(URL_INTRANET, '_self');
         else if (tgo === 'extranet') window.open(URL_EXTRANET, '_self');
-        else if (tgo === 'wlan')     window.open(URL_WLAN, '_self');
+        else if (tgo === 'wlan') window.open(URL_WLAN, '_self');
       });
     });
 
@@ -360,7 +368,7 @@
         await store.set("autoLogin", !cur);
         await renderFabKV();
         alert(!cur ? (LANG === 'zh' ? "自动登录已开启" : "Auto-login enabled")
-                   : (LANG === 'zh' ? "自动登录已关闭" : "Auto-login disabled"));
+          : (LANG === 'zh' ? "自动登录已关闭" : "Auto-login disabled"));
       });
       document.getElementById('hit-fab-trigger-login').addEventListener('click', () => {
         triggerAutoLoginOnce();
@@ -382,18 +390,18 @@
 
     const savedUsername = await store.get("username", "");
     const savedPassword = await store.get("password", "");
-    const autoLogin     = !!(await store.get("autoLogin", false));
+    const autoLogin = !!(await store.get("autoLogin", false));
 
     const usernameInput = findUsernameInput();
     const passwordInput = findPasswordInput();
-    const rememberMe    = findRememberMe();
-    const loginButton   = findLoginButton();
+    const rememberMe = findRememberMe();
+    const loginButton = findLoginButton();
 
-    const errorTip   = byIds(errorTip_ids);
+    const errorTip = byIds(errorTip_ids);
     const captchaDlg = byIds(captcha_ids);
 
     if (errorTip && (errorTip.title?.includes("该账号非常用账号或用户名密码有误") ||
-                     errorTip.title?.includes("图形动态码错误"))) {
+      errorTip.title?.includes("图形动态码错误"))) {
       await store.set("autoLogin", false);
       hideOverlay();
       alert((t('err_fail')) + errorTip.title + (t('err_autoclosed')));
@@ -421,7 +429,7 @@
 
     if (loginButton) {
       setTimeout(() => {
-        if (!interrupted) { try { loginButton.click(); } catch (_) {} }
+        if (!interrupted) { try { loginButton.click(); } catch (_) { } }
       }, 150);
     }
 

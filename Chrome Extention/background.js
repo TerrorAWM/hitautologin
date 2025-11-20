@@ -16,7 +16,7 @@ async function createOrUpdateMenu() {
   const lang = await get('lang', 'zh');
   const title = t(lang, 'menu_manual');
   try {
-    chrome.contextMenus.update("hit_trigger_login", { title });
+    await chrome.contextMenus.update("hit_trigger_login", { title });
   } catch {
     chrome.contextMenus.create({
       id: "hit_trigger_login",
