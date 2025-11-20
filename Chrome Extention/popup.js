@@ -4,50 +4,56 @@ const $ = (id) => document.getElementById(id);
 // storage helpers
 const get = (key, defVal) => new Promise(res => chrome.storage.local.get([key], o => res(o[key] !== undefined ? o[key] : defVal)));
 const set = (key, val) => new Promise(res => chrome.storage.local.set({ [key]: val }, res));
-function debounce(fn, ms=500){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+function debounce(fn, ms = 500) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
 const I18N = {
   zh: {
-    title:"HIT 自动登录",
-    help:"使用教程",
-    lang:" ",
-    username:"用户名",
-    user_ph:"学号/用户名",
-    password:"密码",
-    pass_ph:"密码",
-    auto:"开启自动登录",
-    fab:"显示悬浮按钮",
-    saved_user:"用户名已自动保存",
-    saved_pass:"密码已自动保存",
-    enabled_auto:"已开启自动登录",
-    disabled_auto:"已关闭自动登录",
-    show_fab:"已显示悬浮按钮",
-    hide_fab:"已隐藏悬浮按钮",
-    cant_inject:"当前页面无法注入脚本，切换将于刷新后生效",
-    hint:"提示：在 HIT 域名页面将自动尝试登录。"
+    title: "HIT 自动登录",
+    help: "使用教程",
+    lang: " ",
+    username: "用户名",
+    user_ph: "学号/用户名",
+    password: "密码",
+    pass_ph: "密码",
+    auto: "开启自动登录",
+    fab: "显示悬浮按钮",
+    saved_user: "用户名已自动保存",
+    saved_pass: "密码已自动保存",
+    enabled_auto: "已开启自动登录",
+    disabled_auto: "已关闭自动登录",
+    show_fab: "已显示悬浮按钮",
+    hide_fab: "已隐藏悬浮按钮",
+    cant_inject: "当前页面无法注入脚本，切换将于刷新后生效",
+    hint: "提示：在 HIT 域名页面将自动尝试登录。",
+    idp_auth: "自动同意校外授权",
+    enabled_idp: "已开启自动授权",
+    disabled_idp: "已关闭自动授权"
   },
   en: {
-    title:"HIT Auto Login",
-    help:"Help",
-    lang:" ",
-    username:"Username",
-    user_ph:"Username/ID",
-    password:"Password",
-    pass_ph:"Password",
-    auto:"Enable Auto Login",
-    fab:"Show Floating Button",
-    saved_user:"Username saved automatically",
-    saved_pass:"Password saved automatically",
-    enabled_auto:"Auto login enabled",
-    disabled_auto:"Auto login disabled",
-    show_fab:"Floating button shown",
-    hide_fab:"Floating button hidden",
-    cant_inject:"This page blocks injection. Change takes effect after refresh.",
-    hint:"Hint: Auto login triggers on HIT domains."
+    title: "HIT Auto Login",
+    help: "Help",
+    lang: " ",
+    username: "Username",
+    user_ph: "Username/ID",
+    password: "Password",
+    pass_ph: "Password",
+    auto: "Enable Auto Login",
+    fab: "Show Floating Button",
+    saved_user: "Username saved automatically",
+    saved_pass: "Password saved automatically",
+    enabled_auto: "Auto login enabled",
+    disabled_auto: "Auto login disabled",
+    show_fab: "Floating button shown",
+    hide_fab: "Floating button hidden",
+    cant_inject: "This page blocks injection. Change takes effect after refresh.",
+    hint: "Hint: Auto login triggers on HIT domains.",
+    idp_auth: "Auto Authorize Off-campus",
+    enabled_idp: "Auto auth enabled",
+    disabled_idp: "Auto auth disabled"
   }
 };
 let LANG = 'zh';
-const tr = (k)=> (I18N[LANG]||I18N.zh)[k]||k;
+const tr = (k) => (I18N[LANG] || I18N.zh)[k] || k;
 
 function applyI18n() {
   $('ttl').textContent = tr('title');
@@ -58,13 +64,15 @@ function applyI18n() {
   $('labPass').textContent = tr('password');
   $('password').placeholder = tr('pass_ph');
   $('kvAuto').textContent = tr('auto');
+  $('kvAuto').textContent = tr('auto');
   $('kvFab').textContent = tr('fab');
+  $('kvIdp').textContent = tr('idp_auth');
   $('hint').textContent = tr('hint');
 }
 
 const showMsg = (txt) => {
   $('hint').textContent = txt;
-  setTimeout(()=>{ $('hint').textContent = tr('hint'); }, 1500);
+  setTimeout(() => { $('hint').textContent = tr('hint'); }, 1500);
 };
 
 async function sendToActiveOrInject(msg) {
@@ -88,10 +96,11 @@ async function init() {
   LANG = await get('lang', 'zh');
   $('lang').value = LANG;
 
-  $('username').value     = await get('username', '');
-  $('password').value     = await get('password', '');
-  $('autologin').checked  = !!(await get('autoLogin', false));
-  $('fab').checked        = !!(await get('fabEnabled', true));
+  $('username').value = await get('username', '');
+  $('password').value = await get('password', '');
+  $('autologin').checked = !!(await get('autoLogin', false));
+  $('fab').checked = !!(await get('fabEnabled', true));
+  $('idpAuth').checked = !!(await get('idpAutoAuth', true));
 
   applyI18n();
 }
@@ -114,9 +123,9 @@ const savePass = debounce(async () => {
   showMsg(tr('saved_pass'));
 });
 $('username').addEventListener('input', saveUser);
-$('username').addEventListener('blur',  saveUser);
+$('username').addEventListener('blur', saveUser);
 $('password').addEventListener('input', savePass);
-$('password').addEventListener('blur',  savePass);
+$('password').addEventListener('blur', savePass);
 
 // 开关：立即写入 + 尝试通知当前页（FAB 显/隐需要实时更新）
 $('autologin').addEventListener('change', async (e) => {
@@ -131,6 +140,11 @@ $('fab').addEventListener('change', async (e) => {
   showMsg(ok
     ? (enabled ? tr('show_fab') : tr('hide_fab'))
     : tr('cant_inject'));
+});
+
+$('idpAuth').addEventListener('change', async (e) => {
+  await set('idpAutoAuth', e.target.checked);
+  showMsg(e.target.checked ? tr('enabled_idp') : tr('disabled_idp'));
 });
 
 // 右上角“？” → 打开内置教程

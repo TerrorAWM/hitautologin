@@ -29,10 +29,12 @@
       fab_set_user: "设置用户名",
       fab_set_pass: "设置密码",
       fab_toggle_auto: "切换自动登录",
+      fab_toggle_idp: "切换校外授权",
       fab_trigger_once: "手动接管登录",
       kv_username: "用户名",
       kv_password: "密码",
       kv_autologin: "自动登录",
+      kv_idp_auth: "校外授权",
       val_on: "已开启",
       val_off: "未开启",
       val_unset: "未设置",
@@ -54,10 +56,12 @@
       fab_set_user: "Set Username",
       fab_set_pass: "Set Password",
       fab_toggle_auto: "Auto Login",
+      fab_toggle_idp: "Toggle IDP Auth",
       fab_trigger_once: "Trigger Login Once",
       kv_username: "Username",
       kv_password: "Password",
       kv_autologin: "Auto Login",
+      kv_idp_auth: "IDP Auth",
       val_on: "On",
       val_off: "Off",
       val_unset: "Not set",
@@ -272,10 +276,12 @@
     const btnSetU = fabShadowRoot.getElementById('hit-fab-set-username');
     const btnSetP = fabShadowRoot.getElementById('hit-fab-set-password');
     const btnTgl = fabShadowRoot.getElementById('hit-fab-toggle-autologin');
+    const btnTglIdp = fabShadowRoot.getElementById('hit-fab-toggle-idp');
     const btnTrig = fabShadowRoot.getElementById('hit-fab-trigger-login');
     if (btnSetU) btnSetU.textContent = t('fab_set_user');
     if (btnSetP) btnSetP.textContent = t('fab_set_pass');
     if (btnTgl) btnTgl.textContent = t('fab_toggle_auto');
+    if (btnTglIdp) btnTglIdp.textContent = t('fab_toggle_idp');
     if (btnTrig) btnTrig.textContent = t('fab_trigger_once');
 
     const siteMeta = fabShadowRoot.getElementById('hit-fab-site-meta');
@@ -290,10 +296,12 @@
     const savedUsername = await store.get("username", "");
     const savedPassword = await store.get("password", "");
     const autoLogin = !!(await store.get("autoLogin", false));
+    const idpAuth = !!(await store.get("idpAutoAuth", true));
     kvBox.innerHTML = `
       <div class="hit-fab-kv"><span>${t('kv_username')}</span><span>${savedUsername || t('val_unset')}</span></div>
       <div class="hit-fab-kv"><span>${t('kv_password')}</span><span>${savedPassword ? mask(savedPassword) : t('val_unset')}</span></div>
       <div class="hit-fab-kv"><span>${t('kv_autologin')}</span><span>${autoLogin ? t('val_on') : t('val_off')}</span></div>
+      <div class="hit-fab-kv"><span>${t('kv_idp_auth')}</span><span>${idpAuth ? t('val_on') : t('val_off')}</span></div>
     `;
   }
 
@@ -327,6 +335,7 @@
               <button class="hit-fab-btn" id="hit-fab-set-username"></button>
               <button class="hit-fab-btn" id="hit-fab-set-password"></button>
               <button class="hit-fab-btn" id="hit-fab-toggle-autologin"></button>
+              <button class="hit-fab-btn" id="hit-fab-toggle-idp"></button>
               <button class="hit-fab-btn" id="hit-fab-trigger-login" style="display:none;"></button>
             </div>
           </div>
@@ -384,6 +393,13 @@
         await renderFabKV();
         alert(!cur ? (LANG === 'zh' ? "自动登录已开启" : "Auto-login enabled")
           : (LANG === 'zh' ? "自动登录已关闭" : "Auto-login disabled"));
+      });
+      shadow.getElementById('hit-fab-toggle-idp').addEventListener('click', async () => {
+        const cur = !!(await store.get("idpAutoAuth", true));
+        await store.set("idpAutoAuth", !cur);
+        await renderFabKV();
+        alert(!cur ? (LANG === 'zh' ? "校外授权自动同意已开启" : "IDP Auto-Auth enabled")
+          : (LANG === 'zh' ? "校外授权自动同意已关闭" : "IDP Auto-Auth disabled"));
       });
       shadow.getElementById('hit-fab-trigger-login').addEventListener('click', () => {
         triggerAutoLoginOnce();
@@ -470,8 +486,12 @@
     doHitAutoLogin({ force: true });
   }
 
-  function handleIdpAuth() {
+  async function handleIdpAuth() {
     if (location.hostname !== 'idp.hit.edu.cn') return;
+
+    // 检查开关
+    const enabled = !!(await store.get("idpAutoAuth", true));
+    if (!enabled) return;
 
     // 1. 身份认证与隐私声明页
     // 页面特征：checkbox#accept, button[name="_eventId_proceed"]
@@ -563,7 +583,7 @@
       const on = !!changes.fabEnabled.newValue;
       on ? createFab() : destroyFab();
     }
-    if ('username' in changes || 'password' in changes || 'autoLogin' in changes) {
+    if ('username' in changes || 'password' in changes || 'autoLogin' in changes || 'idpAutoAuth' in changes) {
       renderFabKV();
     }
     if ('lang' in changes) {
