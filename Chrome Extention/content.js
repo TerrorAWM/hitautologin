@@ -43,7 +43,9 @@
       overlay_go_portal: "登录校园网",
       err_fail: "登录失败: ",
       err_autoclosed: "。自动登录已关闭。",
-      err_captcha: "检测到验证码弹窗，自动登录已关闭。"
+      err_captcha: "检测到验证码弹窗，自动登录已关闭。",
+      fab_title_tools: "常用工具",
+      tool_webvpn: "WebVPN 重载"
     },
     en: {
       site_hit: "Current site: HIT",
@@ -70,7 +72,9 @@
       overlay_go_portal: "Go to HIT-WLAN Login",
       err_fail: "Login failed: ",
       err_autoclosed: ". Auto-login is turned off.",
-      err_captcha: "Captcha dialog detected. Auto-login is turned off."
+      err_captcha: "Captcha dialog detected. Auto-login is turned off.",
+      fab_title_tools: "Common Tools",
+      tool_webvpn: "WebVPN Reload"
     }
   };
   let LANG = 'zh';
@@ -263,7 +267,8 @@
     if (!p) return;
     const titleEls = p.querySelectorAll('.hit-fab-title');
     if (titleEls[0]) titleEls[0].textContent = t('fab_title_links');
-    if (titleEls[1]) titleEls[1].textContent = t('fab_title_login');
+    if (titleEls[1]) titleEls[1].textContent = t('fab_title_tools');
+    if (titleEls[2]) titleEls[2].textContent = t('fab_title_login');
 
     const btns = p.querySelectorAll('[data-goto]');
     btns.forEach((btn) => {
@@ -283,6 +288,9 @@
     if (btnTgl) btnTgl.textContent = t('fab_toggle_auto');
     if (btnTglIdp) btnTglIdp.textContent = t('fab_toggle_idp');
     if (btnTrig) btnTrig.textContent = t('fab_trigger_once');
+
+    const btnWebVpn = fabShadowRoot.getElementById('hit-fab-tool-webvpn');
+    if (btnWebVpn) btnWebVpn.textContent = t('tool_webvpn');
 
     const siteMeta = fabShadowRoot.getElementById('hit-fab-site-meta');
     if (siteMeta) siteMeta.textContent = isHitSite ? t('site_hit') : t('site_non');
@@ -326,6 +334,12 @@
           <button class="hit-fab-btn" data-goto="intranet"></button>
           <button class="hit-fab-btn" data-goto="extranet"></button>
           <button class="hit-fab-btn" data-goto="wlan"></button>
+        </div>
+        <div class="hit-fab-sec">
+          <div class="hit-fab-title"></div>
+          <div class="hit-fab-row">
+             <button class="hit-fab-btn" id="hit-fab-tool-webvpn"></button>
+          </div>
         </div>
         ${isHitSite ? `
           <div class="hit-fab-sec">
@@ -405,6 +419,23 @@
         triggerAutoLoginOnce();
       });
     }
+
+    shadow.getElementById('hit-fab-tool-webvpn').addEventListener('click', () => {
+      const url = location.href;
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return;
+
+        const host = urlObj.hostname;
+        const modifiedHost = host.replace(/\./g, '-');
+        const finalHost = `${modifiedHost}-s.ivpn.hit.edu.cn:1080`;
+
+        const newUrl = url.replace(host, finalHost).replace('https://', 'http://');
+        window.open(newUrl, '_self');
+      } catch (e) {
+        console.error(e);
+      }
+    });
   }
 
   function destroyFab() {

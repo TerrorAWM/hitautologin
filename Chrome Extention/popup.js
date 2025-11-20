@@ -27,7 +27,9 @@ const I18N = {
     hint: "提示：在 HIT 域名页面将自动尝试登录。",
     idp_auth: "自动同意校外授权",
     enabled_idp: "已开启自动授权",
-    disabled_idp: "已关闭自动授权"
+    disabled_idp: "已关闭自动授权",
+    webvpn_reload: "使用 WebVPN 重载",
+    invalid_url: "无效的 URL"
   },
   en: {
     title: "HIT Auto Login",
@@ -49,7 +51,9 @@ const I18N = {
     hint: "Hint: Auto login triggers on HIT domains.",
     idp_auth: "Auto Authorize Off-campus",
     enabled_idp: "Auto auth enabled",
-    disabled_idp: "Auto auth disabled"
+    disabled_idp: "Auto auth disabled",
+    webvpn_reload: "Reload with WebVPN",
+    invalid_url: "Invalid URL"
   }
 };
 let LANG = 'zh';
@@ -67,6 +71,7 @@ function applyI18n() {
   $('kvAuto').textContent = tr('auto');
   $('kvFab').textContent = tr('fab');
   $('kvIdp').textContent = tr('idp_auth');
+  $('btnWebVpn').textContent = tr('webvpn_reload');
   $('hint').textContent = tr('hint');
 }
 
@@ -152,4 +157,32 @@ document.getElementById('help').addEventListener('click', async (e) => {
   e.preventDefault();
   const url = chrome.runtime.getURL('help.html');
   await chrome.tabs.create({ url });
+});
+
+// WebVPN Reload Logic
+function getWebVpnUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return null;
+
+    const host = urlObj.hostname;
+    const modifiedHost = host.replace(/\./g, '-');
+    const finalHost = `${modifiedHost}-s.ivpn.hit.edu.cn:1080`;
+
+    return url.replace(host, finalHost).replace('https://', 'http://');
+  } catch (e) {
+    return null;
+  }
+}
+
+$('btnWebVpn').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.url) return;
+
+  const newUrl = getWebVpnUrl(tab.url);
+  if (newUrl) {
+    chrome.tabs.update(tab.id, { url: newUrl });
+  } else {
+    showMsg(tr('invalid_url') || "Invalid URL");
+  }
 });

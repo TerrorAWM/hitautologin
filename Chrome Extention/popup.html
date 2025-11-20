@@ -144,6 +144,28 @@
       align-items: center;
       gap: 8px;
     }
+
+    .btn-full {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--bd);
+      background: #fff;
+      color: var(--fg);
+      cursor: pointer;
+      margin-top: 10px;
+      font-size: 13px;
+      transition: background .15s;
+    }
+
+    .btn-full:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+
+    .btn-full:active {
+      background: #f3f4f6;
+    }
   </style>
 </head>
 
@@ -188,6 +210,14 @@
       <input id="idpAuth" type="checkbox" />
       <span class="slider"></span>
     </label>
+  </div>
+
+  <div class="row">
+    <div class="row">
+      <button id="btnWebVpn" class="btn-full">
+        WebVPN Reload
+      </button>
+    </div>
   </div>
 
 
