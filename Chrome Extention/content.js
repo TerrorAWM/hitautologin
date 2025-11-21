@@ -29,10 +29,12 @@
       fab_set_user: "设置用户名",
       fab_set_pass: "设置密码",
       fab_toggle_auto: "切换自动登录",
+      fab_toggle_idp: "切换校外授权",
       fab_trigger_once: "手动接管登录",
       kv_username: "用户名",
       kv_password: "密码",
       kv_autologin: "自动登录",
+      kv_idp_auth: "校外授权",
       val_on: "已开启",
       val_off: "未开启",
       val_unset: "未设置",
@@ -41,7 +43,9 @@
       overlay_go_portal: "登录校园网",
       err_fail: "登录失败: ",
       err_autoclosed: "。自动登录已关闭。",
-      err_captcha: "检测到验证码弹窗，自动登录已关闭。"
+      err_captcha: "检测到验证码弹窗，自动登录已关闭。",
+      fab_title_tools: "常用工具",
+      tool_webvpn: "通过 WebVPN 访问"
     },
     en: {
       site_hit: "Current site: HIT",
@@ -54,10 +58,12 @@
       fab_set_user: "Set Username",
       fab_set_pass: "Set Password",
       fab_toggle_auto: "Auto Login",
+      fab_toggle_idp: "Toggle IDP Auth",
       fab_trigger_once: "Trigger Login Once",
       kv_username: "Username",
       kv_password: "Password",
       kv_autologin: "Auto Login",
+      kv_idp_auth: "IDP Auth",
       val_on: "On",
       val_off: "Off",
       val_unset: "Not set",
@@ -66,7 +72,9 @@
       overlay_go_portal: "Go to HIT-WLAN Login",
       err_fail: "Login failed: ",
       err_autoclosed: ". Auto-login is turned off.",
-      err_captcha: "Captcha dialog detected. Auto-login is turned off."
+      err_captcha: "Captcha dialog detected. Auto-login is turned off.",
+      fab_title_tools: "Common Tools",
+      tool_webvpn: "Access via WebVPN"
     }
   };
   let LANG = 'zh';
@@ -78,7 +86,7 @@
   // ---- 目标链接 ----
   const URL_INTRANET = 'http://i.hit.edu.cn/';
   const URL_EXTRANET = 'http://ivpn.hit.edu.cn/';
-  const URL_WLAN     = 'https://webportal.hit.edu.cn/';
+  const URL_WLAN = 'https://webportal.hit.edu.cn/';
 
   // ---- HIT 站点判定 ----
   const isHitSite =
@@ -86,20 +94,20 @@
     /(^|\.)ivpn\.hit\.edu\.cn$/i.test(location.hostname);
 
   // ====== 可配置 ID 列表（兼容历史）======
-  let username_ids     = ["username", "user", "loginUser", "IDToken1"];
-  let password_ids     = ["password", "passwd", "loginPwd", "IDToken2"];
-  let rememberMe_ids   = ["rememberMe", "remember", "stayLogged"];
+  let username_ids = ["username", "user", "loginUser", "IDToken1"];
+  let password_ids = ["password", "passwd", "loginPwd", "IDToken2"];
+  let rememberMe_ids = ["rememberMe", "remember", "stayLogged"];
   let login_submit_ids = ["login_submit", "login", "submitButton", "btn-login", "submit"];
-  let errorTip_ids     = ["showErrorTip"];
-  let captcha_ids      = ["captcha-id", "layui-layer1", "captcha-box"];
+  let errorTip_ids = ["showErrorTip"];
+  let captcha_ids = ["captcha-id", "layui-layer1", "captcha-box"];
 
   function setCustomIds(options) {
-    if (options.username_ids)     username_ids = options.username_ids;
-    if (options.password_ids)     password_ids = options.password_ids;
-    if (options.rememberMe_ids)   rememberMe_ids = options.rememberMe_ids;
+    if (options.username_ids) username_ids = options.username_ids;
+    if (options.password_ids) password_ids = options.password_ids;
+    if (options.rememberMe_ids) rememberMe_ids = options.rememberMe_ids;
     if (options.login_submit_ids) login_submit_ids = options.login_submit_ids;
-    if (options.errorTip_ids)     errorTip_ids = options.errorTip_ids;
-    if (options.captcha_ids)      captcha_ids = options.captcha_ids;
+    if (options.errorTip_ids) errorTip_ids = options.errorTip_ids;
+    if (options.captcha_ids) captcha_ids = options.captcha_ids;
   }
 
   // ====== 工具 ======
@@ -216,36 +224,51 @@
   }
 
   // ====== 悬浮入口（全站显示）======
+  // ====== 悬浮入口（全站显示）======
   let fabDocHandler = null;
+  let fabShadowRoot = null;
 
-  function ensureFabStyle() {
-    addStyle(`
-      #hit-fab{ position: fixed; right:14px; bottom:16px; z-index:2147483646;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC","Microsoft YaHei",sans-serif;}
+  function getFabCss() {
+    return `
+      :host { position: fixed; right:14px; bottom:16px; z-index:2147483646;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC","Microsoft YaHei",sans-serif; }
       #hit-fab-toggle{ width:48px; height:48px; border-radius:50%; border:none; cursor:pointer; background:#005375; color:#fff;
-        font-weight:700; font-size:14px; box-shadow:0 8px 20px rgba(0,0,0,.25);}
+        font-weight:700; font-size:14px; box-shadow:0 8px 20px rgba(0,0,0,.25); transition: transform 0.2s; }
+      #hit-fab-toggle:hover { transform: scale(1.05); }
       #hit-fab-panel{ position:absolute; right:0; bottom:60px; min-width:260px; max-width:86vw; background:#fff; color:#111;
-        border-radius:14px; padding:12px; box-shadow:0 16px 40px rgba(0,0,0,.25); display:none;}
+        border-radius:14px; padding:12px; box-shadow:0 16px 40px rgba(0,0,0,.25); display:none;
+        transform-origin: bottom right; animation: hit-pop-in 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
       #hit-fab-panel.open{ display:block; }
+      @keyframes hit-pop-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
       .hit-fab-title{ font-size:14px; font-weight:700; margin:2px 0 8px; }
       .hit-fab-row{ display:flex; gap:8px; flex-wrap:wrap; }
-      .hit-fab-btn{ border:none; border-radius:999px; padding:8px 12px; background:#eef2ff; cursor:pointer; font-size:13px; }
+      .hit-fab-btn{ border:none; border-radius:999px; padding:8px 12px; background:#eef2ff; cursor:pointer; font-size:13px; color: #111; transition: background 0.2s; }
       .hit-fab-btn:hover{ background:#e0e7ff; }
       .hit-fab-sec{ margin-top:10px; padding-top:8px; border-top:1px dashed #e5e7eb; }
       .hit-fab-meta{ font-size:12px; color:#6b7280; }
       .hit-fab-kv{ display:flex; justify-content:space-between; gap:8px; font-size:12px; padding:4px 0; }
-    `);
+
+      @media (prefers-color-scheme: dark) {
+        #hit-fab-panel { background: #1f2937; color: #f3f4f6; box-shadow: 0 16px 40px rgba(0,0,0,.5); }
+        .hit-fab-btn { background: #374151; color: #e5e7eb; }
+        .hit-fab-btn:hover { background: #4b5563; }
+        .hit-fab-sec { border-top-color: #4b5563; }
+        .hit-fab-meta { color: #9ca3af; }
+      }
+    `;
   }
 
   const mask = (str) => (!str ? t('val_unset') : '•'.repeat(Math.min(8, Math.max(6, Math.floor(str.length * 0.8)))));
 
   function renderFabStaticTexts() {
     // 标题与按钮文案
-    const p = document.getElementById('hit-fab-panel');
+    if (!fabShadowRoot) return;
+    const p = fabShadowRoot.getElementById('hit-fab-panel');
     if (!p) return;
     const titleEls = p.querySelectorAll('.hit-fab-title');
     if (titleEls[0]) titleEls[0].textContent = t('fab_title_links');
-    if (titleEls[1]) titleEls[1].textContent = t('fab_title_login');
+    if (titleEls[1]) titleEls[1].textContent = t('fab_title_tools');
+    if (titleEls[2]) titleEls[2].textContent = t('fab_title_login');
 
     const btns = p.querySelectorAll('[data-goto]');
     btns.forEach((btn) => {
@@ -255,40 +278,55 @@
       if (g === 'wlan') btn.textContent = t('common_wlan');
     });
 
-    const btnSetU = document.getElementById('hit-fab-set-username');
-    const btnSetP = document.getElementById('hit-fab-set-password');
-    const btnTgl  = document.getElementById('hit-fab-toggle-autologin');
-    const btnTrig = document.getElementById('hit-fab-trigger-login');
+    const btnSetU = fabShadowRoot.getElementById('hit-fab-set-username');
+    const btnSetP = fabShadowRoot.getElementById('hit-fab-set-password');
+    const btnTgl = fabShadowRoot.getElementById('hit-fab-toggle-autologin');
+    const btnTglIdp = fabShadowRoot.getElementById('hit-fab-toggle-idp');
+    const btnTrig = fabShadowRoot.getElementById('hit-fab-trigger-login');
     if (btnSetU) btnSetU.textContent = t('fab_set_user');
     if (btnSetP) btnSetP.textContent = t('fab_set_pass');
-    if (btnTgl)  btnTgl.textContent  = t('fab_toggle_auto');
+    if (btnTgl) btnTgl.textContent = t('fab_toggle_auto');
+    if (btnTglIdp) btnTglIdp.textContent = t('fab_toggle_idp');
     if (btnTrig) btnTrig.textContent = t('fab_trigger_once');
 
-    const siteMeta = document.getElementById('hit-fab-site-meta');
+    const btnWebVpn = fabShadowRoot.getElementById('hit-fab-tool-webvpn');
+    if (btnWebVpn) btnWebVpn.textContent = t('tool_webvpn');
+
+    const siteMeta = fabShadowRoot.getElementById('hit-fab-site-meta');
     if (siteMeta) siteMeta.textContent = isHitSite ? t('site_hit') : t('site_non');
   }
 
   // —— 提升为外层函数，便于 storage 变化时重渲染 ——
   async function renderFabKV() {
-    if (!isHitSite) return;
-    const kvBox = document.getElementById('hit-fab-kv-box');
+    if (!isHitSite || !fabShadowRoot) return;
+    const kvBox = fabShadowRoot.getElementById('hit-fab-kv-box');
     if (!kvBox) return;
     const savedUsername = await store.get("username", "");
     const savedPassword = await store.get("password", "");
-    const autoLogin     = !!(await store.get("autoLogin", false));
+    const autoLogin = !!(await store.get("autoLogin", false));
+    const idpAuth = !!(await store.get("idpAutoAuth", true));
     kvBox.innerHTML = `
       <div class="hit-fab-kv"><span>${t('kv_username')}</span><span>${savedUsername || t('val_unset')}</span></div>
       <div class="hit-fab-kv"><span>${t('kv_password')}</span><span>${savedPassword ? mask(savedPassword) : t('val_unset')}</span></div>
       <div class="hit-fab-kv"><span>${t('kv_autologin')}</span><span>${autoLogin ? t('val_on') : t('val_off')}</span></div>
+      <div class="hit-fab-kv"><span>${t('kv_idp_auth')}</span><span>${idpAuth ? t('val_on') : t('val_off')}</span></div>
     `;
   }
 
   async function createFab() {
-    if (document.getElementById('hit-fab')) return;
-    ensureFabStyle();
-    const wrap = document.createElement('div');
-    wrap.id = 'hit-fab';
-    wrap.innerHTML = `
+    if (document.getElementById('hit-fab-host')) return;
+
+    const host = document.createElement('div');
+    host.id = 'hit-fab-host';
+    const shadow = host.attachShadow({ mode: 'open' });
+    fabShadowRoot = shadow;
+
+    const style = document.createElement('style');
+    style.textContent = getFabCss();
+    shadow.appendChild(style);
+
+    const container = document.createElement('div');
+    container.innerHTML = `
       <button id="hit-fab-toggle" title="HIT">HIT</button>
       <div id="hit-fab-panel" role="dialog" aria-label="HIT">
         <div class="hit-fab-title"></div>
@@ -296,6 +334,12 @@
           <button class="hit-fab-btn" data-goto="intranet"></button>
           <button class="hit-fab-btn" data-goto="extranet"></button>
           <button class="hit-fab-btn" data-goto="wlan"></button>
+        </div>
+        <div class="hit-fab-sec">
+          <div class="hit-fab-title"></div>
+          <div class="hit-fab-row">
+             <button class="hit-fab-btn" id="hit-fab-tool-webvpn"></button>
+          </div>
         </div>
         ${isHitSite ? `
           <div class="hit-fab-sec">
@@ -305,6 +349,7 @@
               <button class="hit-fab-btn" id="hit-fab-set-username"></button>
               <button class="hit-fab-btn" id="hit-fab-set-password"></button>
               <button class="hit-fab-btn" id="hit-fab-toggle-autologin"></button>
+              <button class="hit-fab-btn" id="hit-fab-toggle-idp"></button>
               <button class="hit-fab-btn" id="hit-fab-trigger-login" style="display:none;"></button>
             </div>
           </div>
@@ -314,29 +359,30 @@
         </div>
       </div>
     `;
-    document.documentElement.appendChild(wrap);
+    while (container.firstChild) shadow.appendChild(container.firstChild);
+    document.documentElement.appendChild(host);
 
-    const panel  = document.getElementById('hit-fab-panel');
-    const toggle = document.getElementById('hit-fab-toggle');
+    const panel = shadow.getElementById('hit-fab-panel');
+    const toggle = shadow.getElementById('hit-fab-toggle');
 
     toggle.addEventListener('click', (e) => {
       e.stopPropagation(); panel.classList.toggle('open');
     });
 
     fabDocHandler = (e) => {
-      if (!panel.classList.contains('open')) return;
-      const inside = panel.contains(e.target);
-      const onToggle = toggle.contains(e.target);
-      if (!inside && !onToggle) panel.classList.remove('open');
+      // If click target is not the host, it means it's outside the shadow DOM (or at least outside our component)
+      if (e.target !== host) {
+        panel.classList.remove('open');
+      }
     };
     document.addEventListener('click', fabDocHandler, true);
 
     panel.querySelectorAll('[data-goto]').forEach(btn => {
       btn.addEventListener('click', () => {
         const tgo = btn.getAttribute('data-goto');
-        if (tgo === 'intranet')      window.open(URL_INTRANET, '_self');
+        if (tgo === 'intranet') window.open(URL_INTRANET, '_self');
         else if (tgo === 'extranet') window.open(URL_EXTRANET, '_self');
-        else if (tgo === 'wlan')     window.open(URL_WLAN, '_self');
+        else if (tgo === 'wlan') window.open(URL_WLAN, '_self');
       });
     });
 
@@ -345,27 +391,51 @@
     if (isHitSite) {
       await renderFabKV();
 
-      document.getElementById('hit-fab-set-username').addEventListener('click', async () => {
+      shadow.getElementById('hit-fab-set-username').addEventListener('click', async () => {
         const cur = await store.get("username", "");
         const v = prompt(LANG === 'zh' ? "请输入用户名:" : "Enter username:", cur || "");
         if (v !== null) { await store.set("username", v); await renderFabKV(); alert(LANG === 'zh' ? "用户名已保存" : "Username saved"); }
       });
-      document.getElementById('hit-fab-set-password').addEventListener('click', async () => {
+      shadow.getElementById('hit-fab-set-password').addEventListener('click', async () => {
         const cur = await store.get("password", "");
         const v = prompt(LANG === 'zh' ? "请输入密码:" : "Enter password:", cur || "");
         if (v !== null) { await store.set("password", v); await renderFabKV(); alert(LANG === 'zh' ? "密码已保存" : "Password saved"); }
       });
-      document.getElementById('hit-fab-toggle-autologin').addEventListener('click', async () => {
+      shadow.getElementById('hit-fab-toggle-autologin').addEventListener('click', async () => {
         const cur = !!(await store.get("autoLogin", false));
         await store.set("autoLogin", !cur);
         await renderFabKV();
         alert(!cur ? (LANG === 'zh' ? "自动登录已开启" : "Auto-login enabled")
-                   : (LANG === 'zh' ? "自动登录已关闭" : "Auto-login disabled"));
+          : (LANG === 'zh' ? "自动登录已关闭" : "Auto-login disabled"));
       });
-      document.getElementById('hit-fab-trigger-login').addEventListener('click', () => {
+      shadow.getElementById('hit-fab-toggle-idp').addEventListener('click', async () => {
+        const cur = !!(await store.get("idpAutoAuth", true));
+        await store.set("idpAutoAuth", !cur);
+        await renderFabKV();
+        alert(!cur ? (LANG === 'zh' ? "校外授权自动同意已开启" : "IDP Auto-Auth enabled")
+          : (LANG === 'zh' ? "校外授权自动同意已关闭" : "IDP Auto-Auth disabled"));
+      });
+      shadow.getElementById('hit-fab-trigger-login').addEventListener('click', () => {
         triggerAutoLoginOnce();
       });
     }
+
+    shadow.getElementById('hit-fab-tool-webvpn').addEventListener('click', () => {
+      const url = location.href;
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return;
+
+        const host = urlObj.hostname;
+        const modifiedHost = host.replace(/\./g, '-');
+        const finalHost = `${modifiedHost}-s.ivpn.hit.edu.cn:1080`;
+
+        const newUrl = url.replace(host, finalHost).replace('https://', 'http://');
+        window.open(newUrl, '_self');
+      } catch (e) {
+        console.error(e);
+      }
+    });
   }
 
   function destroyFab() {
@@ -373,7 +443,8 @@
       document.removeEventListener('click', fabDocHandler, true);
       fabDocHandler = null;
     }
-    document.getElementById('hit-fab')?.remove();
+    document.getElementById('hit-fab-host')?.remove();
+    fabShadowRoot = null;
   }
 
   // ====== 自动登录核心 ======
@@ -382,18 +453,18 @@
 
     const savedUsername = await store.get("username", "");
     const savedPassword = await store.get("password", "");
-    const autoLogin     = !!(await store.get("autoLogin", false));
+    const autoLogin = !!(await store.get("autoLogin", false));
 
     const usernameInput = findUsernameInput();
     const passwordInput = findPasswordInput();
-    const rememberMe    = findRememberMe();
-    const loginButton   = findLoginButton();
+    const rememberMe = findRememberMe();
+    const loginButton = findLoginButton();
 
-    const errorTip   = byIds(errorTip_ids);
+    const errorTip = byIds(errorTip_ids);
     const captchaDlg = byIds(captcha_ids);
 
     if (errorTip && (errorTip.title?.includes("该账号非常用账号或用户名密码有误") ||
-                     errorTip.title?.includes("图形动态码错误"))) {
+      errorTip.title?.includes("图形动态码错误"))) {
       await store.set("autoLogin", false);
       hideOverlay();
       alert((t('err_fail')) + errorTip.title + (t('err_autoclosed')));
@@ -421,7 +492,7 @@
 
     if (loginButton) {
       setTimeout(() => {
-        if (!interrupted) { try { loginButton.click(); } catch (_) {} }
+        if (!interrupted) { try { loginButton.click(); } catch (_) { } }
       }, 150);
     }
 
@@ -446,17 +517,77 @@
     doHitAutoLogin({ force: true });
   }
 
+  async function handleIdpAuth() {
+    if (location.hostname !== 'idp.hit.edu.cn') return;
+
+    // 检查开关
+    const enabled = !!(await store.get("idpAutoAuth", true));
+    if (!enabled) return;
+
+    // 1. 身份认证与隐私声明页
+    // 页面特征：checkbox#accept, button[name="_eventId_proceed"]
+    const acceptBox = document.getElementById('accept');
+    const proceedBtn = document.querySelector('button[name="_eventId_proceed"]');
+
+    if (acceptBox && proceedBtn) {
+      // 自动勾选
+      if (!acceptBox.checked) {
+        acceptBox.checked = true;
+        acceptBox.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      // 提交
+      setTimeout(() => {
+        proceedBtn.click();
+      }, 200);
+
+      showOverlay();
+      const msg = document.getElementById('hit-overlay-msg');
+      if (msg) msg.textContent = "正在自动同意校外访问授权...";
+      return;
+    }
+
+    // 2. 信息发布页 (Information Release)
+    // 页面特征：input[value="_shib_idp_globalConsent"], button[name="_eventId_proceed"]
+    const globalConsentRadio = document.querySelector('input[type="radio"][value="_shib_idp_globalConsent"]');
+
+    if (globalConsentRadio && proceedBtn) {
+      // 选中“不要再次提示我”
+      if (!globalConsentRadio.checked) {
+        globalConsentRadio.checked = true;
+        globalConsentRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      // 提交
+      setTimeout(() => {
+        proceedBtn.click();
+      }, 200);
+
+      showOverlay();
+      const msg = document.getElementById('hit-overlay-msg');
+      if (msg) msg.textContent = "正在自动同意信息发布...";
+    }
+  }
+
   async function boot() {
     LANG = await store.get('lang', 'zh');
     const fabOn = await store.get(FAB_KEY, true);
     if (fabOn) await createFab();
 
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => { autoLoginWithRetry(); });
-      window.addEventListener('load', () => { autoLoginWithRetry(); });
+      document.addEventListener('DOMContentLoaded', () => {
+        autoLoginWithRetry();
+        handleIdpAuth();
+      });
+      window.addEventListener('load', () => {
+        autoLoginWithRetry();
+        handleIdpAuth();
+      });
     } else {
       autoLoginWithRetry();
-      window.addEventListener('load', () => { autoLoginWithRetry(); });
+      handleIdpAuth();
+      window.addEventListener('load', () => {
+        autoLoginWithRetry();
+        handleIdpAuth();
+      });
     }
   }
   boot();
@@ -483,7 +614,7 @@
       const on = !!changes.fabEnabled.newValue;
       on ? createFab() : destroyFab();
     }
-    if ('username' in changes || 'password' in changes || 'autoLogin' in changes) {
+    if ('username' in changes || 'password' in changes || 'autoLogin' in changes || 'idpAutoAuth' in changes) {
       renderFabKV();
     }
     if ('lang' in changes) {
