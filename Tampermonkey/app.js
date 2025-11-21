@@ -2,8 +2,8 @@
 // @name         HIT 校园网站自动登录2.0
 // @namespace    https://github.com/TerrorAWM
 // @updateURL    https://greasyfork.org/zh-CN/scripts/507678-hit-%E6%A0%A1%E5%9B%AD%E7%BD%91%E7%AB%99%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%952-0
-// @version      1.2.2
-// @description  在 HIT 站点自动填充/登录；在所有页面都显示可折叠悬浮入口，便于随时跳转HIT内/外网与HIT-WLAN
+// @version      1.3.0
+// @description  在 HIT 站点自动填充/登录；在所有页面都显示可折叠悬浮入口，便于随时跳转HIT内/外网与HIT-WLAN；支持WebVPN重定向与校外授权自动同意
 // @author       Ricardo Zheng
 // @match        http://*/*
 // @match        https://*/*
@@ -21,7 +21,7 @@
   // ---- 目标链接 ----
   const URL_INTRANET = 'http://i.hit.edu.cn/';
   const URL_EXTRANET = 'http://ivpn.hit.edu.cn/';
-  const URL_WLAN     = 'https://webportal.hit.edu.cn/';
+  const URL_WLAN = 'https://webportal.hit.edu.cn/';
 
   // ---- HIT 站点判定（含 *.hit.edu.cn 与 *.ivpn.hit.edu.cn）----
   const isHitSite =
@@ -32,21 +32,21 @@
   const FAB_KEY = 'fabEnabled';
 
   // ====== 可配置 ID 列表（兼容历史）======
-  let username_ids     = ["username", "user", "loginUser", "IDToken1"];
-  let password_ids     = ["password", "passwd", "loginPwd", "IDToken2"];
-  let rememberMe_ids   = ["rememberMe", "remember", "stayLogged"];
+  let username_ids = ["username", "user", "loginUser", "IDToken1"];
+  let password_ids = ["password", "passwd", "loginPwd", "IDToken2"];
+  let rememberMe_ids = ["rememberMe", "remember", "stayLogged"];
   let login_submit_ids = ["login_submit", "login", "submitButton", "btn-login", "submit"];
-  let errorTip_ids     = ["showErrorTip"];
-  let captcha_ids      = ["captcha-id", "layui-layer1", "captcha-box"];
+  let errorTip_ids = ["showErrorTip"];
+  let captcha_ids = ["captcha-id", "layui-layer1", "captcha-box"];
 
   // 外部自定义接口
   function setCustomIds(options) {
-    if (options.username_ids)     username_ids = options.username_ids;
-    if (options.password_ids)     password_ids = options.password_ids;
-    if (options.rememberMe_ids)   rememberMe_ids = options.rememberMe_ids;
+    if (options.username_ids) username_ids = options.username_ids;
+    if (options.password_ids) password_ids = options.password_ids;
+    if (options.rememberMe_ids) rememberMe_ids = options.rememberMe_ids;
     if (options.login_submit_ids) login_submit_ids = options.login_submit_ids;
-    if (options.errorTip_ids)     errorTip_ids = options.errorTip_ids;
-    if (options.captcha_ids)      captcha_ids = options.captcha_ids;
+    if (options.errorTip_ids) errorTip_ids = options.errorTip_ids;
+    if (options.captcha_ids) captcha_ids = options.captcha_ids;
   }
 
   // ====== 工具函数 ======
@@ -167,17 +167,28 @@
       #hit-fab{ position: fixed; right:14px; bottom:16px; z-index:2147483646;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC","Microsoft YaHei",sans-serif;}
       #hit-fab-toggle{ width:48px; height:48px; border-radius:50%; border:none; cursor:pointer; background:#005375; color:#fff;
-        font-weight:700; font-size:14px; box-shadow:0 8px 20px rgba(0,0,0,.25);}
-      #hit-fab-panel{ position:absolute; right:0; bottom:60px; min-width:240px; max-width:86vw; background:#fff; color:#111;
-        border-radius:14px; padding:12px; box-shadow:0 16px 40px rgba(0,0,0,.25); display:none;}
+        font-weight:700; font-size:14px; box-shadow:0 8px 20px rgba(0,0,0,.25); transition: transform 0.2s;}
+      #hit-fab-toggle:hover { transform: scale(1.05); }
+      #hit-fab-panel{ position:absolute; right:0; bottom:60px; min-width:260px; max-width:86vw; background:#fff; color:#111;
+        border-radius:14px; padding:12px; box-shadow:0 16px 40px rgba(0,0,0,.25); display:none;
+        transform-origin: bottom right; animation: hit-pop-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);}
       #hit-fab-panel.open{ display:block; }
+      @keyframes hit-pop-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
       .hit-fab-title{ font-size:14px; font-weight:700; margin:2px 0 8px; }
       .hit-fab-row{ display:flex; gap:8px; flex-wrap:wrap; }
-      .hit-fab-btn{ border:none; border-radius:999px; padding:8px 12px; background:#eef2ff; cursor:pointer; font-size:13px; }
+      .hit-fab-btn{ border:none; border-radius:999px; padding:8px 12px; background:#eef2ff; cursor:pointer; font-size:13px; color:#111; transition: background 0.2s; }
       .hit-fab-btn:hover{ background:#e0e7ff; }
       .hit-fab-sec{ margin-top:10px; padding-top:8px; border-top:1px dashed #e5e7eb; }
       .hit-fab-meta{ font-size:12px; color:#6b7280; }
       .hit-fab-kv{ display:flex; justify-content:space-between; gap:8px; font-size:12px; padding:4px 0; }
+
+      @media (prefers-color-scheme: dark) {
+        #hit-fab-panel { background: #1f2937; color: #f3f4f6; box-shadow: 0 16px 40px rgba(0,0,0,.5); }
+        .hit-fab-btn { background: #374151; color: #e5e7eb; }
+        .hit-fab-btn:hover { background: #4b5563; }
+        .hit-fab-sec { border-top-color: #4b5563; }
+        .hit-fab-meta { color: #9ca3af; }
+      }
     `);
   }
 
@@ -201,6 +212,12 @@
           <button class="hit-fab-btn" data-goto="extranet">访问HIT外网</button>
           <button class="hit-fab-btn" data-goto="wlan">访问HIT-WLAN</button>
         </div>
+        <div class="hit-fab-sec">
+          <div class="hit-fab-title">常用工具</div>
+          <div class="hit-fab-row">
+            <button class="hit-fab-btn" id="hit-fab-tool-webvpn">通过 WebVPN 访问</button>
+          </div>
+        </div>
         ${isHitSite ? `
           <div class="hit-fab-sec">
             <div class="hit-fab-title">登录助手</div>
@@ -209,6 +226,7 @@
               <button class="hit-fab-btn" id="hit-fab-set-username">设置用户名</button>
               <button class="hit-fab-btn" id="hit-fab-set-password">设置密码</button>
               <button class="hit-fab-btn" id="hit-fab-toggle-autologin">切换自动登录</button>
+              <button class="hit-fab-btn" id="hit-fab-toggle-idp">切换校外授权</button>
               <button class="hit-fab-btn" id="hit-fab-trigger-login" style="display:none;">手动接管登录</button>
             </div>
           </div>
@@ -220,7 +238,7 @@
     `;
     document.documentElement.appendChild(wrap);
 
-    const panel  = document.getElementById('hit-fab-panel');
+    const panel = document.getElementById('hit-fab-panel');
     const toggle = document.getElementById('hit-fab-toggle');
 
     // 展开/收起
@@ -242,10 +260,28 @@
     panel.querySelectorAll('[data-goto]').forEach(btn => {
       btn.addEventListener('click', () => {
         const t = btn.getAttribute('data-goto');
-        if (t === 'intranet')      window.open(URL_INTRANET, '_self');
+        if (t === 'intranet') window.open(URL_INTRANET, '_self');
         else if (t === 'extranet') window.open(URL_EXTRANET, '_self');
-        else if (t === 'wlan')     window.open(URL_WLAN, '_self');
+        else if (t === 'wlan') window.open(URL_WLAN, '_self');
       });
+    });
+
+    // WebVPN 工具按钮
+    document.getElementById('hit-fab-tool-webvpn')?.addEventListener('click', () => {
+      const url = location.href;
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return;
+
+        const host = urlObj.hostname;
+        const modifiedHost = host.replace(/\./g, '-');
+        const finalHost = `${modifiedHost}-s.ivpn.hit.edu.cn:1080`;
+
+        const newUrl = url.replace(host, finalHost).replace('https://', 'http://');
+        window.open(newUrl, '_self');
+      } catch (e) {
+        console.error(e);
+      }
     });
 
     // 登录助手（仅 HIT 域）
@@ -254,11 +290,13 @@
       function renderKV() {
         const savedUsername = GM_getValue("username", "未设置");
         const savedPassword = GM_getValue("password", "");
-        const autoLogin     = GM_getValue("autoLogin", false);
+        const autoLogin = GM_getValue("autoLogin", false);
+        const idpAuth = GM_getValue("idpAutoAuth", true);
         kvBox.innerHTML = `
           <div class="hit-fab-kv"><span>用户名</span><span>${savedUsername || '未设置'}</span></div>
           <div class="hit-fab-kv"><span>密码</span><span>${savedPassword ? mask(savedPassword) : '未设置'}</span></div>
           <div class="hit-fab-kv"><span>自动登录</span><span>${autoLogin ? '已开启' : '未开启'}</span></div>
+          <div class="hit-fab-kv"><span>校外授权</span><span>${idpAuth ? '已开启' : '未开启'}</span></div>
         `;
       }
       renderKV();
@@ -276,6 +314,12 @@
         GM_setValue("autoLogin", !cur);
         renderKV();
         alert(!cur ? "自动登录已开启" : "自动登录已关闭");
+      });
+      document.getElementById('hit-fab-toggle-idp')?.addEventListener('click', () => {
+        const cur = !!GM_getValue("idpAutoAuth", true);
+        GM_setValue("idpAutoAuth", !cur);
+        renderKV();
+        alert(!cur ? "校外授权自动同意已开启" : "校外授权自动同意已关闭");
       });
       document.getElementById('hit-fab-trigger-login').addEventListener('click', () => {
         triggerAutoLoginOnce(); // 立即强制尝试一次
@@ -330,6 +374,14 @@
     destroyFab();
     alert("已关闭悬浮按钮");
   });
+  GM_registerMenuCommand("开启校外授权自动同意", function () {
+    GM_setValue("idpAutoAuth", true);
+    alert("已开启校外授权自动同意!");
+  });
+  GM_registerMenuCommand("关闭校外授权自动同意", function () {
+    GM_setValue("idpAutoAuth", false);
+    alert("已关闭校外授权自动同意!");
+  });
 
   // ====== 自动登录核心 ======
   function doHitAutoLogin({ force = false } = {}) {
@@ -337,18 +389,18 @@
 
     const savedUsername = GM_getValue("username", "");
     const savedPassword = GM_getValue("password", "");
-    const autoLogin     = GM_getValue("autoLogin", false);
+    const autoLogin = GM_getValue("autoLogin", false);
 
     const usernameInput = findUsernameInput();
     const passwordInput = findPasswordInput();
-    const rememberMe    = findRememberMe();
-    const loginButton   = findLoginButton();
+    const rememberMe = findRememberMe();
+    const loginButton = findLoginButton();
 
-    const errorTip   = byIds(errorTip_ids);
+    const errorTip = byIds(errorTip_ids);
     const captchaDlg = byIds(captcha_ids);
 
     if (errorTip && (errorTip.title?.includes("该账号非常用账号或用户名密码有误") ||
-                     errorTip.title?.includes("图形动态码错误"))) {
+      errorTip.title?.includes("图形动态码错误"))) {
       GM_setValue("autoLogin", false);
       hideOverlay();
       alert("登录失败: " + errorTip.title + "。自动登录已关闭。");
@@ -378,7 +430,7 @@
 
     if (loginButton) {
       setTimeout(() => {
-        if (!interrupted) { try { loginButton.click(); } catch (_) {} }
+        if (!interrupted) { try { loginButton.click(); } catch (_) { } }
       }, 150);
     }
 
@@ -406,15 +458,76 @@
     doHitAutoLogin({ force: true });
   }
 
+  // ====== IDP 自动授权功能 ======
+  function handleIdpAuth() {
+    if (location.hostname !== 'idp.hit.edu.cn') return;
+
+    // 检查开关
+    const enabled = !!GM_getValue("idpAutoAuth", true);
+    if (!enabled) return;
+
+    // 1. 身份认证与隐私声明页
+    // 页面特征：checkbox#accept, button[name="_eventId_proceed"]
+    const acceptBox = document.getElementById('accept');
+    const proceedBtn = document.querySelector('button[name="_eventId_proceed"]');
+
+    if (acceptBox && proceedBtn) {
+      // 自动勾选
+      if (!acceptBox.checked) {
+        acceptBox.checked = true;
+        acceptBox.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      // 提交
+      setTimeout(() => {
+        proceedBtn.click();
+      }, 200);
+
+      showOverlay();
+      const msg = document.getElementById('hit-overlay-msg');
+      if (msg) msg.textContent = "正在自动同意校外访问授权...";
+      return;
+    }
+
+    // 2. 信息发布页 (Information Release)
+    // 页面特征：input[value="_shib_idp_globalConsent"], button[name="_eventId_proceed"]
+    const globalConsentRadio = document.querySelector('input[type="radio"][value="_shib_idp_globalConsent"]');
+
+    if (globalConsentRadio && proceedBtn) {
+      // 选中"不要再次提示我"
+      if (!globalConsentRadio.checked) {
+        globalConsentRadio.checked = true;
+        globalConsentRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      // 提交
+      setTimeout(() => {
+        proceedBtn.click();
+      }, 200);
+
+      showOverlay();
+      const msg = document.getElementById('hit-overlay-msg');
+      if (msg) msg.textContent = "正在自动同意信息发布...";
+    }
+  }
+
   // 启动
   function boot() {
     if (GM_getValue(FAB_KEY, true)) createFab(); // 尊重开关
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => { autoLoginWithRetry(); });
-      window.addEventListener('load', () => { autoLoginWithRetry(); });
+      document.addEventListener('DOMContentLoaded', () => {
+        autoLoginWithRetry();
+        handleIdpAuth();
+      });
+      window.addEventListener('load', () => {
+        autoLoginWithRetry();
+        handleIdpAuth();
+      });
     } else {
       autoLoginWithRetry();
-      window.addEventListener('load', () => { autoLoginWithRetry(); });
+      handleIdpAuth();
+      window.addEventListener('load', () => {
+        autoLoginWithRetry();
+        handleIdpAuth();
+      });
     }
   }
   boot();
