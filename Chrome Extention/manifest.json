@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HIT 校园网站自动登录 2.0",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "author": "Ricardo Zheng",
   "description": "在 HIT 站点自动填充/登录",
   "permissions": ["storage", "contextMenus", "scripting", "activeTab", "tabs"],
