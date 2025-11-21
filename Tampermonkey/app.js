@@ -274,6 +274,10 @@
         if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return;
 
         const host = urlObj.hostname;
+        if (host.endsWith('.ivpn.hit.edu.cn')) {
+          alert('当前已在 WebVPN 访问模式');
+          return;
+        }
         const modifiedHost = host.replace(/\./g, '-');
         const finalHost = `${modifiedHost}-s.ivpn.hit.edu.cn:1080`;
 
