@@ -5,6 +5,7 @@
 - **重构**：Tampermonkey 脚本的悬浮按钮（FAB）和遮罩层重构为使用 **Shadow DOM**，彻底隔离样式，避免与页面样式冲突。
 - **优化**：Chrome 扩展优化了 UI 元素的注入位置（从 `documentElement` 移至 `body`），提高了兼容性。
 - **新增平台**：发布 **Firefox 扩展版本**，已上架 Firefox Add-ons 商店，功能与 Chrome 插件版完全一致。
+- **新增平台**：发布 **Microsoft Edge 扩展版本**，已提交至 Edge Add-ons 商店审核。
 
 ## v1.3.0 (2025-11-21)
 - **新增功能**：支持 WebVPN 访问重定向，方便在校外访问内网资源。

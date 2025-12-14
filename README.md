@@ -33,6 +33,14 @@ hitautologin/
 │   ├── popup.js
 │   └── help.html
 │
+├── Edge Extension/
+│   ├── manifest.json (Manifest V3)
+│   ├── background.js
+│   ├── content.js
+│   ├── popup.html
+│   ├── popup.js
+│   └── help.html
+│
 ├── Firefox Extension/
 │   ├── manifest.json (Manifest V2)
 │   ├── background.js
