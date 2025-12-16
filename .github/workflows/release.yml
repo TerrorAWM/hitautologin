@@ -1,0 +1,73 @@
+name: Build and Release Extensions
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from manifest
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' "Chrome Extension/manifest.json")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP packages
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DATE="${{ steps.date.outputs.date }}"
+          
+          # Create output directory
+          mkdir -p dist
+          
+          # Package Chrome Extension
+          cd "Chrome Extension"
+          zip -r "../dist/HIT_AutoLogin_Chrome_V${VERSION}(${DATE}).zip" .
+          cd ..
+          
+          # Package Edge Extension
+          cd "Edge Extension"
+          zip -r "../dist/HIT_AutoLogin_Edge_V${VERSION}(${DATE}).zip" .
+          cd ..
+          
+          # Package Firefox Extension
+          cd "Firefox Extension"
+          zip -r "../dist/HIT_AutoLogin_Firefox_V${VERSION}(${DATE}).zip" .
+          cd ..
+          
+          # Package Tampermonkey
+          cd "Tampermonkey"
+          zip -r "../dist/HIT_AutoLogin_Tampermonkey_V${VERSION}(${DATE}).zip" .
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: HIT AutoLogin V${{ steps.version.outputs.version }} (${{ steps.date.outputs.date }})
+          body: |
+            ## HIT 校园网站自动登录 V${{ steps.version.outputs.version }}
+            
+            发布日期: ${{ steps.date.outputs.date }}
+            
+            ### 下载
+            - **Chrome Extension**: 适用于 Chrome 浏览器 (Manifest V3)
+            - **Edge Extension**: 适用于 Edge 浏览器 (Manifest V3)
+            - **Firefox Extension**: 适用于 Firefox 浏览器 (Manifest V2)
+            - **Tampermonkey**: 油猴脚本版本
+          files: dist/*.zip
+          draft: false
+          prerelease: false
