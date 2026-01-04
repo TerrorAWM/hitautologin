@@ -1,11 +1,3 @@
----
-name: Pull Request
-about: 提交代码变更
-title: ''
-labels: ''
-assignees: ''
----
-
 ## 变更说明
 <!-- 简要说明这个 PR 做了什么 -->
 
