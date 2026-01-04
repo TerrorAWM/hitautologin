@@ -2,7 +2,7 @@
 // @name         HIT 校园网站自动登录2.0
 // @namespace    https://github.com/TerrorAWM
 // @updateURL    https://greasyfork.org/zh-CN/scripts/507678-hit-%E6%A0%A1%E5%9B%AD%E7%BD%91%E7%AB%99%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%952-0
-// @version      1.3.1
+// @version      1.3.2
 // @description  在 HIT 站点自动填充/登录；在所有页面都显示可折叠悬浮入口，便于随时跳转HIT内/外网与HIT-WLAN；支持WebVPN重定向与校外授权自动同意
 // @author       Ricardo Zheng
 // @match        http://*/*
@@ -17,6 +17,14 @@
 
 (function () {
   'use strict';
+
+  // ========== 跳过自动登录的站点 ==========
+  // 这些站点会导致自动登录兼容性问题，只显示FAB但不执行自动登录
+  const SKIP_AUTOLOGIN_HOSTNAMES = [
+    'mail.hit.edu.cn'  // Issue #4: HIT MAIL 登录页面兼容性问题
+  ];
+
+  const skipAutoLogin = SKIP_AUTOLOGIN_HOSTNAMES.includes(location.hostname);
 
   // ---- 目标链接 ----
   const URL_INTRANET = 'http://i.hit.edu.cn/';
@@ -347,6 +355,12 @@
         triggerAutoLoginOnce(); // 立即强制尝试一次
       });
     }
+
+    // FAB 创建完成后，主动抬高页面上的 Float Button 组
+    adjustPageFloatBtns(true);
+
+    // 启动持续监控，检测动态加载的 Float Button
+    observeNewFloatBtns();
   }
 
   function destroyFab() {
@@ -354,8 +368,119 @@
       document.removeEventListener('click', fabDocHandler, true);
       fabDocHandler = null;
     }
+    // 恢复页面上的 Ant Design Float Button 组
+    adjustPageFloatBtns(false);
     document.getElementById('hit-fab-host')?.remove();
     fabShadowRoot = null;
+  }
+
+  // ====== 调整页面上的 Ant Design Float Button 组位置 ======
+  const FLOAT_BTN_OFFSET = 60; // 抬高的像素值
+
+  function adjustPageFloatBtns(fabVisible) {
+    const selectors = [
+      '.ant-float-btn-group',
+      '.ant-float-btn:not(.ant-float-btn-group .ant-float-btn)'
+    ];
+
+    const elements = document.querySelectorAll(selectors.join(', '));
+
+    elements.forEach((el) => {
+      const style = getComputedStyle(el);
+      if (style.position !== 'fixed') return;
+
+      const currentBottom = parseInt(style.bottom) || 0;
+      const currentRight = parseInt(style.right) || 0;
+
+      if (currentRight > 100 || (currentBottom > 200 && !el.dataset.hitOriginalBottom)) return;
+
+      if (fabVisible) {
+        if (!el.dataset.hitOriginalBottom) {
+          el.dataset.hitOriginalBottom = currentBottom;
+        }
+        const newBottom = parseInt(el.dataset.hitOriginalBottom) + FLOAT_BTN_OFFSET;
+        el.style.bottom = newBottom + 'px';
+        el.style.transition = 'bottom 0.2s ease';
+      } else {
+        if (el.dataset.hitOriginalBottom) {
+          el.style.bottom = el.dataset.hitOriginalBottom + 'px';
+          delete el.dataset.hitOriginalBottom;
+        }
+      }
+    });
+  }
+
+  // 持续监控页面上新添加的 float button，确保它们也被抬高
+  let floatBtnObserver = null;
+  function observeNewFloatBtns() {
+    if (floatBtnObserver) return;
+
+    floatBtnObserver = new MutationObserver((mutations) => {
+      let hasNewFloatBtn = false;
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (node.matches?.('.ant-float-btn, .ant-float-btn-group') ||
+                node.querySelector?.('.ant-float-btn, .ant-float-btn-group')) {
+                hasNewFloatBtn = true;
+                break;
+              }
+            }
+          }
+        }
+        if (hasNewFloatBtn) break;
+      }
+
+      if (hasNewFloatBtn) {
+        const fabHost = document.getElementById('hit-fab-host');
+        if (fabHost) {
+          adjustPageFloatBtns(true);
+        }
+      }
+    });
+
+    floatBtnObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  // ====== 系统更新弹窗自动点击 ======
+  function handleSystemUpdateModal() {
+    const modals = document.querySelectorAll('.ant-modal-confirm');
+
+    for (const modal of modals) {
+      const content = modal.querySelector('.ant-modal-confirm-content');
+      if (content && content.textContent.includes('系统已更新，为保证使用体验，请刷新页面')) {
+        const refreshBtn = modal.querySelector('.ant-modal-confirm-btns .ant-btn-primary');
+        if (refreshBtn) {
+          console.log('[HIT Auto Login] 检测到系统更新弹窗，自动点击刷新按钮');
+          refreshBtn.click();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function observeSystemUpdateModal() {
+    handleSystemUpdateModal();
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.addedNodes.length > 0) {
+          setTimeout(() => {
+            handleSystemUpdateModal();
+          }, 100);
+        }
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
   }
 
   // ====== Tampermonkey 菜单 ======
@@ -468,7 +593,7 @@
 
   // 在 HIT 域：最多 10s，每 300ms 重试一次，适配 ids.hit.edu.cn 的异步渲染
   function autoLoginWithRetry() {
-    if (!isHitSite) return;
+    if (!isHitSite || skipAutoLogin) return;
     const deadline = Date.now() + 10000;
     const tid = setInterval(() => {
       const done = doHitAutoLogin(); // 成功执行（找到表单）或命中错误/验证码会返回 true
@@ -537,6 +662,10 @@
   // 启动
   function boot() {
     if (GM_getValue(FAB_KEY, true)) createFab(); // 尊重开关
+
+    // 启动系统更新弹窗监听
+    observeSystemUpdateModal();
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         autoLoginWithRetry();
@@ -558,5 +687,5 @@
   boot();
 
   // 暴露 API
-  window.HITLoginAuto2 = { setCustomIds, triggerLogin: triggerAutoLoginOnce, showOverlay, hideOverlay };
+  window.HITLoginAuto2 = { setCustomIds, triggerLogin: triggerAutoLoginOnce, showOverlay, hideOverlay, adjustFloatBtns: adjustPageFloatBtns };
 })();

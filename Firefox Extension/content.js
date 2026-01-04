@@ -2,6 +2,14 @@
 (() => {
   'use strict';
 
+  // ========== 跳过自动登录的站点 ==========
+  // 这些站点会导致自动登录兼容性问题，只显示FAB但不执行自动登录
+  const SKIP_AUTOLOGIN_HOSTNAMES = [
+    'mail.hit.edu.cn'  // Issue #4: HIT MAIL 登录页面兼容性问题
+  ];
+
+  const skipAutoLogin = SKIP_AUTOLOGIN_HOSTNAMES.includes(location.hostname);
+
   // ========== 简易存储 ==========
   const store = {
     async get(key, defVal) {
@@ -365,13 +373,19 @@
     const panel = shadow.getElementById('hit-fab-panel');
     const toggle = shadow.getElementById('hit-fab-toggle');
 
+    if (!toggle) return;
+
     toggle.addEventListener('click', (e) => {
-      e.stopPropagation(); panel.classList.toggle('open');
+      e.stopPropagation();
+      panel.classList.toggle('open');
     });
 
     fabDocHandler = (e) => {
-      // If click target is not the host, it means it's outside the shadow DOM (or at least outside our component)
-      if (e.target !== host) {
+      // 使用 composedPath 来正确判断事件是否来自我们的组件（包括 Shadow DOM）
+      const path = e.composedPath();
+      const clickedInsideHost = path.includes(host);
+
+      if (!clickedInsideHost && panel.classList.contains('open')) {
         panel.classList.remove('open');
       }
     };
@@ -436,6 +450,12 @@
         console.error(e);
       }
     });
+
+    // FAB 创建完成后，主动抬高页面上的 Float Button 组（因为 FAB 按钮会占据右下角空间）
+    adjustPageFloatBtns(true);
+
+    // 启动持续监控，检测动态加载的 Float Button
+    observeNewFloatBtns();
   }
 
   function destroyFab() {
@@ -443,9 +463,86 @@
       document.removeEventListener('click', fabDocHandler, true);
       fabDocHandler = null;
     }
+    // 恢复页面上的 Ant Design Float Button 组
+    adjustPageFloatBtns(false);
     document.getElementById('hit-fab-host')?.remove();
     fabShadowRoot = null;
   }
+
+  // ====== 调整页面上的 Ant Design Float Button 组位置 ======
+  const FLOAT_BTN_OFFSET = 60; // 抬高的像素值
+
+  function adjustPageFloatBtns(fabVisible) {
+    const selectors = [
+      '.ant-float-btn-group',
+      '.ant-float-btn:not(.ant-float-btn-group .ant-float-btn)'
+    ];
+
+    const elements = document.querySelectorAll(selectors.join(', '));
+
+    elements.forEach((el) => {
+      const style = getComputedStyle(el);
+      if (style.position !== 'fixed') return;
+
+      const currentBottom = parseInt(style.bottom) || 0;
+      const currentRight = parseInt(style.right) || 0;
+
+      if (currentRight > 100 || (currentBottom > 200 && !el.dataset.hitOriginalBottom)) return;
+
+      if (fabVisible) {
+        if (!el.dataset.hitOriginalBottom) {
+          el.dataset.hitOriginalBottom = currentBottom;
+        }
+        const newBottom = parseInt(el.dataset.hitOriginalBottom) + FLOAT_BTN_OFFSET;
+        el.style.bottom = newBottom + 'px';
+        el.style.transition = 'bottom 0.2s ease';
+      } else {
+        if (el.dataset.hitOriginalBottom) {
+          el.style.bottom = el.dataset.hitOriginalBottom + 'px';
+          delete el.dataset.hitOriginalBottom;
+        }
+      }
+    });
+  }
+
+  // 持续监控页面上新添加的 float button，确保它们也被抬高
+  let floatBtnObserver = null;
+  function observeNewFloatBtns() {
+    if (floatBtnObserver) return; // 已经在监控了
+
+    floatBtnObserver = new MutationObserver((mutations) => {
+      // 检查是否有新的 float button 添加
+      let hasNewFloatBtn = false;
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (node.matches?.('.ant-float-btn, .ant-float-btn-group') ||
+                node.querySelector?.('.ant-float-btn, .ant-float-btn-group')) {
+                hasNewFloatBtn = true;
+                break;
+              }
+            }
+          }
+        }
+        if (hasNewFloatBtn) break;
+      }
+
+      if (hasNewFloatBtn) {
+        const fabHost = document.getElementById('hit-fab-host');
+        if (fabHost) {
+          adjustPageFloatBtns(true);
+        }
+      }
+    });
+
+    floatBtnObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+
 
   // ====== 自动登录核心 ======
   async function doHitAutoLogin({ force = false } = {}) {
@@ -505,7 +602,7 @@
   }
 
   function autoLoginWithRetry() {
-    if (!isHitSite) return;
+    if (!isHitSite || skipAutoLogin) return;
     const deadline = Date.now() + 10000;
     const tid = setInterval(async () => {
       const done = await doHitAutoLogin();
@@ -551,7 +648,7 @@
     const globalConsentRadio = document.querySelector('input[type="radio"][value="_shib_idp_globalConsent"]');
 
     if (globalConsentRadio && proceedBtn) {
-      // 选中“不要再次提示我”
+      // 选中"不要再次提示我"
       if (!globalConsentRadio.checked) {
         globalConsentRadio.checked = true;
         globalConsentRadio.dispatchEvent(new Event('change', { bubbles: true }));
@@ -567,10 +664,57 @@
     }
   }
 
+  // ====== 系统更新弹窗自动点击 ======
+  function handleSystemUpdateModal() {
+    // 检测 Ant Design Modal 确认弹窗
+    // 特征：.ant-modal-confirm 且内容包含"系统已更新，为保证使用体验，请刷新页面"
+    const modals = document.querySelectorAll('.ant-modal-confirm');
+
+    for (const modal of modals) {
+      const content = modal.querySelector('.ant-modal-confirm-content');
+      if (content && content.textContent.includes('系统已更新，为保证使用体验，请刷新页面')) {
+        // 找到"立即刷新"按钮并点击
+        const refreshBtn = modal.querySelector('.ant-modal-confirm-btns .ant-btn-primary');
+        if (refreshBtn) {
+          console.log('[HIT Auto Login] 检测到系统更新弹窗，自动点击刷新按钮');
+          refreshBtn.click();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // 使用 MutationObserver 监听弹窗出现
+  function observeSystemUpdateModal() {
+    // 先检查一次当前页面
+    handleSystemUpdateModal();
+
+    // 监听 DOM 变化
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.addedNodes.length > 0) {
+          // 延迟一小段时间确保 DOM 完全渲染
+          setTimeout(() => {
+            handleSystemUpdateModal();
+          }, 100);
+        }
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
   async function boot() {
     LANG = await store.get('lang', 'zh');
     const fabOn = await store.get(FAB_KEY, true);
     if (fabOn) await createFab();
+
+    // 启动系统更新弹窗监听
+    observeSystemUpdateModal();
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
@@ -627,5 +771,5 @@
   });
 
   // 暴露给页面（可选）
-  window.HITLoginAuto2 = { setCustomIds, triggerLogin: triggerAutoLoginOnce, showOverlay, hideOverlay };
+  window.HITLoginAuto2 = { setCustomIds, triggerLogin: triggerAutoLoginOnce, showOverlay, hideOverlay, adjustFloatBtns: adjustPageFloatBtns };
 })();
