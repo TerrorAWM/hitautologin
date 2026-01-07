@@ -27,6 +27,7 @@
 | Edge         | [Add-ons 商店](https://microsoftedge.microsoft.com/addons/detail/hit-%E6%A0%A1%E5%9B%AD%E7%BD%91%E7%AB%99%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%95-20/dlpdlfndlmeaepiabdonndfbjpdciefo) | 已上架     |
 | Tampermonkey | [GreasyFork](https://greasyfork.org/zh-CN/scripts/507678-hit-%E6%A0%A1%E5%9B%AD%E7%BD%91%E7%AB%99%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%952-0)        | 已上架     |
 | Chrome       | 手动加载扩展 ([教程](./INSTALL.md#chrome-插件版))                                                                                                | -          |
+| iOS (Safari) | TestFlight 内测 ([安装教程](./IOS_test.md))                                                                                                      | 内测中     |
 
 ### 生效范围
 
