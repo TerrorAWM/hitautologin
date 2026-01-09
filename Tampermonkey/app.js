@@ -659,6 +659,18 @@
     }
   }
 
+  // ====== JWTS 统一身份认证自动点击 (jwts-hit-edu-cn.ivpn.hit.edu.cn:1080) ======
+  function handleJwtsAuth() {
+    // strict check including port as requested
+    if (location.host !== 'jwts-hit-edu-cn.ivpn.hit.edu.cn:1080') return;
+
+    const btn = document.getElementById('dl');
+    if (btn && btn.textContent.includes('统一身份认证登录')) {
+      console.log('[HIT Auto Login] 检测到统一身份认证登录按钮，自动点击');
+      btn.click();
+    }
+  }
+
   // 启动
   function boot() {
     if (GM_getValue(FAB_KEY, true)) createFab(); // 尊重开关
@@ -670,17 +682,21 @@
       document.addEventListener('DOMContentLoaded', () => {
         autoLoginWithRetry();
         handleIdpAuth();
+        handleJwtsAuth();
       });
       window.addEventListener('load', () => {
         autoLoginWithRetry();
         handleIdpAuth();
+        handleJwtsAuth();
       });
     } else {
       autoLoginWithRetry();
       handleIdpAuth();
+      handleJwtsAuth();
       window.addEventListener('load', () => {
         autoLoginWithRetry();
         handleIdpAuth();
+        handleJwtsAuth();
       });
     }
   }
