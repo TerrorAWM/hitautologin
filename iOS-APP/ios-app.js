@@ -2,7 +2,7 @@
 // @name         HIT 校园网站自动登录2.0
 // @namespace    https://github.com/TerrorAWM
 // @updateURL    https://greasyfork.org/zh-CN/scripts/507678-hit-%E6%A0%A1%E5%9B%AD%E7%BD%91%E7%AB%99%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%952-0
-// @version      1.3.2
+// @version      1.3.4
 // @description  在 HIT 站点自动填充/登录；在所有页面都显示可折叠悬浮入口，便于随时跳转HIT内/外网与HIT-WLAN；支持WebVPN重定向与校外授权自动同意
 // @author       Ricardo Zheng
 // @match        http://*/*
@@ -547,15 +547,29 @@
 
         const errorTip = byIds(errorTip_ids);
         const captchaDlg = byIds(captcha_ids);
+        const alertBox = document.getElementById('alert-box');
 
-        if (errorTip && (errorTip.title?.includes("该账号非常用账号或用户名密码有误") ||
-            errorTip.title?.includes("图形动态码错误"))) {
+        // Dynamic error keyword detection - check both title and textContent
+        const errorKeywords = ['密码', '错误', '有误', '失败', '未激活', '账号'];
+        const errorText = (errorTip?.title || '') + (errorTip?.textContent || '');
+        const alertBoxText = (alertBox?.title || '') + (alertBox?.textContent || '');
+        const hasLoginError = (errorTip && errorKeywords.some(kw => errorText.includes(kw))) ||
+            (alertBox && errorKeywords.some(kw => alertBoxText.includes(kw)));
+
+        if (hasLoginError) {
             GM_setValue("autoLogin", false);
             hideOverlay();
-            alert("登录失败: " + errorTip.title + "。自动登录已关闭。");
+            const errorMsg = alertBox?.textContent || alertBox?.title || errorTip?.textContent || errorTip?.title || '';
+            alert("登录失败: " + errorMsg + "。自动登录已关闭。");
             return true;
         }
-        if (captchaDlg) {
+
+        // Enhanced captcha detection - check if visible (not hidden)
+        const captchaVisible = captchaDlg &&
+            captchaDlg.offsetParent !== null &&
+            getComputedStyle(captchaDlg).display !== 'none';
+
+        if (captchaVisible) {
             GM_setValue("autoLogin", false);
             hideOverlay();
             alert("检测到验证码弹窗，自动登录已关闭。");

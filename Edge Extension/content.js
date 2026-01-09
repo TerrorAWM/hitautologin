@@ -559,15 +559,29 @@
 
     const errorTip = byIds(errorTip_ids);
     const captchaDlg = byIds(captcha_ids);
+    const alertBox = document.getElementById('alert-box');
 
-    if (errorTip && (errorTip.title?.includes("该账号非常用账号或用户名密码有误") ||
-      errorTip.title?.includes("图形动态码错误"))) {
+    // Dynamic error keyword detection - check both title and textContent
+    const errorKeywords = ['密码', '错误', '有误', '失败', '未激活', '账号'];
+    const errorText = (errorTip?.title || '') + (errorTip?.textContent || '');
+    const alertBoxText = (alertBox?.title || '') + (alertBox?.textContent || '');
+    const hasLoginError = (errorTip && errorKeywords.some(kw => errorText.includes(kw))) ||
+      (alertBox && errorKeywords.some(kw => alertBoxText.includes(kw)));
+
+    if (hasLoginError) {
       await store.set("autoLogin", false);
       hideOverlay();
-      alert((t('err_fail')) + errorTip.title + (t('err_autoclosed')));
+      const errorMsg = alertBox?.textContent || alertBox?.title || errorTip?.textContent || errorTip?.title || '';
+      alert((t('err_fail')) + errorMsg + (t('err_autoclosed')));
       return true;
     }
-    if (captchaDlg) {
+
+    // Enhanced captcha detection - check if visible (not hidden)
+    const captchaVisible = captchaDlg &&
+      captchaDlg.offsetParent !== null &&
+      getComputedStyle(captchaDlg).display !== 'none';
+
+    if (captchaVisible) {
       await store.set("autoLogin", false);
       hideOverlay();
       alert(t('err_captcha'));

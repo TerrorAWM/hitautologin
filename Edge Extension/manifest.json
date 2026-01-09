@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "default_locale": "zh_CN",
     "name": "__MSG_appName__",
-    "version": "1.3.2",
+    "version": "1.3.4",
     "author": "Ricardo Zheng",
     "description": "__MSG_appDesc__",
     "permissions": [
